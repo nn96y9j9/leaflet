@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.2/dist/leaflet.css"
+        integrity="sha256-sA+zWATbFveLLNqWO2gtiw3HL/lh1giY/Inf1BJ0z14=" crossorigin="" />
+    <style>
+        table,
+        thead,
+        th,
+        tbody,
+        tr,
+        td {
+            border: 1px solid;
+        }
+
+        #map {
+            height: 640px;
+        }
+    </style>
+
+
+
+</head>
+
+<body>
+    <div id="map"></div>
+    <button id="btn_request">取得咖啡廳列表</button>
+    <table>
+        <thead>
+            <td>id</td>
+            <td>city</td>
+            <td>name</td>
+            <td>address</td>
+            <td>url</td>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script src="https://unpkg.com/leaflet@1.9.2/dist/leaflet.js"
+        integrity="sha256-o9N1jGDZrf5tS+Ft4gbIK7mYMipq9lqpVJ91xHSyKhg=" crossorigin=""></script>
+
+    <script>
+        var map = L.map('map').setView([25.0339145, 121.5412233], 13);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // 設定圖層
+        let layerGroup = null;
+        let arrMarkers = [];
+
+
+        // 給button一個事件用以回傳Web API
+        document.querySelector('button#btn_request').addEventListener('click', function (event) {
+            fetch('http://localhost:5000/cafe_taipei', {
+                method: "GET",
+            }).then(function (response) {
+                return response.json();
+            }).then(function (arr) {
+                console.log(arr)
+
+                // 刪除先前的markers
+                if (layerGroup != null && map.hasLayer(layerGroup)) {
+                    layerGroup.clearLayers();
+                    map.removeLayer(layerGroup);
+
+                    // 變數初始化
+                    let layerGroup = null;
+                    let arrMarkers = [];
+                }
+
+                // 取得tbody元素
+                let tbody = document.querySelector('table tbody');
+
+                // 初始化元素
+                tbody.innerHTML = ' ';
+
+                // 將資料動態生成在網頁上
+                for (let o of arr) {
+                    let tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${o["id"]}</td>
+                    <td>${o["city"]}</td>
+                    <td>${o["name"]}</td>
+                    <td>${o["address"]}</td>
+                    <td><a href="${o["url"]}" target = "_blank">連結</a></td>`;
+                    tbody.appendChild(tr);
+
+                    // 建立 marker
+                    let marker = L.marker([o['latitude'], o['longitude']]).bindPopup(`${o['name']}<br><a href="${o["url"]}" target = "_blank">連結</a>`);
+
+                    // 自訂事件
+                    marker.addEventListener('click', function (event) {
+                        console.log(o)
+                    });
+
+
+                    // 將markers 個別放到空陣列 arrMarkers當中
+                    arrMarkers.push(marker)
+                };
+
+                // 迴圈執行完畢後，將arrMarkers放到LayerGroup
+                layerGroup = L.layerGroup(arrMarkers);
+
+                // 將LayerGroup放到map
+                layerGroup.addTo(map)
+            });
+        });
+    </script>
+</body>
+
+</html>
